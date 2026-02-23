@@ -1,0 +1,67 @@
+/* @config "../tailwind.config.ts";
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-dm-sans);
+}
+
+.font-averia {
+  font-family: var(--font-averia), serif;
+}
+
+.font-averia-serif {
+  font-family: var(--font-averia-serif), serif;
+}
+
+.font-averia-sans {
+  font-family: var(--font-averia-sans), sans-serif;
+} */
+
+
+@config "../tailwind.config.ts";
+@import "tailwindcss";
+
+:root {
+  --background: #FEFBF8;
+  /* your new background */
+  --foreground: #1A1A1A;
+}
+
+body {
+  color: var(--foreground);
+  font-family: var(--font-dm-sans);
+}
+
+/* font utility helpers */
+.font-averia {
+  font-family: var(--font-averia), serif;
+}
+
+.font-averia-serif {
+  font-family: var(--font-averia-serif), serif;
+}
+
+.font-averia-sans {
+  font-family: var(--font-averia-sans), sans-serif;
+}

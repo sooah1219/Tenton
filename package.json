@@ -1,0 +1,13 @@
+{
+  "name": "tenton-app",
+  "private": true,
+  "packageManager": "pnpm@9",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "dotnet watch --project apps/api",
+    "dev": "concurrently -n web,api \"pnpm dev:web\" \"pnpm dev:api\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

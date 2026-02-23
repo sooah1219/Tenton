@@ -1,0 +1,49 @@
+.steam {
+  position: absolute;
+  z-index: 3;
+  width: 80px;
+  height: 230px;
+  pointer-events: none;
+
+  background: radial-gradient(ellipse at center,
+      rgba(255, 255, 255, 0.70) 0%,
+      rgba(255, 255, 255, 0.50) 35%,
+      rgba(255, 255, 255, 0.28) 65%,
+      rgba(255, 255, 255, 0) 100%);
+
+  filter: blur(9px);
+  border-radius: 80%;
+  opacity: 0;
+  animation: steamRise 6.8s ease-in-out infinite;
+}
+
+.steam1 {
+  bottom: 25%;
+  left: 10%;
+}
+
+.steam2 {
+  bottom: 48%;
+  left: 12%;
+  animation-delay: 1.5s;
+}
+
+@keyframes steamRise {
+  0% {
+    transform: translateY(0) scale(0.9);
+    opacity: 0;
+  }
+
+  22% {
+    opacity: 0.5;
+  }
+
+  60% {
+    opacity: 0.35;
+  }
+
+  100% {
+    transform: translateY(-140px) scale(1.2);
+    opacity: 0;
+  }
+}
