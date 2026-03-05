@@ -1,5 +1,7 @@
 "use client";
+
 import { ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
 
 export type PersonalInfo = {
   firstName: string;
@@ -11,6 +13,20 @@ export type PersonalInfo = {
 };
 
 export type Errors = Partial<Record<keyof PersonalInfo, string>>;
+
+const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "icloud.com", "yahoo.com"];
+
+function splitEmail(value: string) {
+  const v = value.trim();
+  const at = v.indexOf("@");
+  if (at === -1) return { local: v, domain: "", hasAt: false };
+  return { local: v.slice(0, at), domain: v.slice(at + 1), hasAt: true };
+}
+
+function applyDomain(local: string, domain: string) {
+  if (!local) return "";
+  return `${local}@${domain}`;
+}
 
 export default function PersonalInfoForm({
   form,
@@ -34,6 +50,31 @@ export default function PersonalInfoForm({
   ) => {
     setForm((p) => ({ ...p, [key]: value }));
     if (errors[key]) setErrors((p) => ({ ...p, [key]: undefined }));
+  };
+
+  function formatPhone(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length < 4) return digits;
+    if (digits.length < 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailActive, setEmailActive] = useState(0);
+
+  const { local, domain, hasAt } = splitEmail(form.email);
+
+  const emailSuggestions = useMemo(() => {
+    if (!hasAt) return [];
+    const q = domain.toLowerCase();
+    return EMAIL_DOMAINS.filter((d) => d.startsWith(q)).slice(0, 6);
+  }, [hasAt, domain]);
+
+  const pickSuggestion = (d: string) => {
+    setField("email", applyDomain(local, d));
+    setEmailOpen(false);
+    setEmailActive(0);
   };
 
   return (
@@ -91,7 +132,7 @@ export default function PersonalInfoForm({
           <input
             required
             value={form.phone}
-            onChange={(e) => setField("phone", e.target.value)}
+            onChange={(e) => setField("phone", formatPhone(e.target.value))}
             className={[inputBase, errors.phone ? inputErr : inputOk].join(" ")}
             placeholder="(604) 123-4567"
             inputMode="tel"
@@ -104,7 +145,7 @@ export default function PersonalInfoForm({
         </div>
 
         {/* Email */}
-        <div>
+        <div className="relative">
           <label className="text-[12px] font-medium text-black/60">
             Email <span className="text-tenton-red">*</span>
           </label>
@@ -112,11 +153,68 @@ export default function PersonalInfoForm({
             required
             type="email"
             value={form.email}
-            onChange={(e) => setField("email", e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setField("email", v);
+
+              const s = splitEmail(v);
+              setEmailOpen(s.hasAt);
+              setEmailActive(0);
+            }}
+            onFocus={() => {
+              if (splitEmail(form.email).hasAt) setEmailOpen(true);
+            }}
+            onBlur={() => {
+              setTimeout(() => setEmailOpen(false), 120);
+            }}
+            onKeyDown={(e) => {
+              if (!emailOpen || emailSuggestions.length === 0) return;
+
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setEmailActive((i) =>
+                  Math.min(i + 1, emailSuggestions.length - 1)
+                );
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setEmailActive((i) => Math.max(i - 1, 0));
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                pickSuggestion(emailSuggestions[emailActive]);
+              } else if (e.key === "Escape") {
+                setEmailOpen(false);
+              }
+            }}
             className={[inputBase, errors.email ? inputErr : inputOk].join(" ")}
             inputMode="email"
             autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="name@example.com"
           />
+
+          {emailOpen && hasAt && emailSuggestions.length > 0 ? (
+            <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-black/10 bg-white shadow-lg">
+              {emailSuggestions.map((d, idx) => (
+                <button
+                  key={d}
+                  type="button"
+                  onMouseDown={(ev) => {
+                    ev.preventDefault();
+                    pickSuggestion(d);
+                  }}
+                  className={[
+                    "w-full px-3 py-2 text-left text-[13px]",
+                    idx === emailActive ? "bg-black/[0.05]" : "bg-white",
+                  ].join(" ")}
+                >
+                  <span className="text-black/60">{local}@</span>
+                  <span className="text-black">{d}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {errors.email ? (
             <div className="mt-1 text-[11px] text-tenton-red">
               {errors.email}

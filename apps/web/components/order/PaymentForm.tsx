@@ -21,7 +21,6 @@ function formatExp(raw: string) {
 }
 
 function luhnCheck(num: string) {
-  // num: digits only
   let sum = 0;
   let doubleIt = false;
   for (let i = num.length - 1; i >= 0; i--) {
@@ -34,6 +33,20 @@ function luhnCheck(num: string) {
     doubleIt = !doubleIt;
   }
   return sum % 10 === 0;
+}
+
+const EMAIL_DOMAINS = ["gmail.com", "outlook.com", "icloud.com", "yahoo.com"];
+
+function splitEmail(value: string) {
+  const v = value.trim();
+  const at = v.indexOf("@");
+  if (at === -1) return { local: v, domain: "", hasAt: false };
+  return { local: v.slice(0, at), domain: v.slice(at + 1), hasAt: true };
+}
+
+function applyDomain(local: string, domain: string) {
+  if (!local) return "";
+  return `${local}@${domain}`;
 }
 
 export default function PaymentForm({
@@ -80,6 +93,23 @@ export default function PaymentForm({
   const [cardNumber, setCardNumber] = useState("");
   const [cardExp, setCardExp] = useState("");
   const [cardCvc, setCardCvc] = useState("");
+
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailActive, setEmailActive] = useState(0);
+
+  const { local, domain, hasAt } = splitEmail(email);
+
+  const emailSuggestions = useMemo(() => {
+    if (!hasAt) return [];
+    const q = domain.toLowerCase();
+    return EMAIL_DOMAINS.filter((d) => d.startsWith(q)).slice(0, 6);
+  }, [hasAt, domain]);
+
+  const pickEmailSuggestion = (d: string) => {
+    setEmail(applyDomain(local, d));
+    setEmailOpen(false);
+    setEmailActive(0);
+  };
 
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
@@ -188,6 +218,16 @@ export default function PaymentForm({
   const okBorder = "border-black/10";
   const errBorder = "border-tenton-red";
 
+  function formatPhone(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+
+    if (digits.length < 4) return digits;
+    if (digits.length < 7) {
+      return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    }
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit} noValidate>
       {/* Personal */}
@@ -241,7 +281,7 @@ export default function PaymentForm({
             </span>
             <input
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
               onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
               placeholder="(604) 123-4567"
               className={[
@@ -256,20 +296,79 @@ export default function PaymentForm({
             )}
           </label>
 
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-sm relative">
             <span className="text-black/60">
               Email <span className="text-tenton-red">*</span>
             </span>
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              onChange={(e) => {
+                const v = e.target.value;
+                setEmail(v);
+
+                const s = splitEmail(v);
+                setEmailOpen(s.hasAt);
+                setEmailActive(0);
+              }}
+              onFocus={() => {
+                if (splitEmail(email).hasAt) setEmailOpen(true);
+              }}
+              onBlur={() => {
+                setTimeout(() => setEmailOpen(false), 120);
+                setTouched((t) => ({ ...t, email: true }));
+              }}
+              onKeyDown={(e) => {
+                if (!emailOpen || emailSuggestions.length === 0) return;
+
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setEmailActive((i) =>
+                    Math.min(i + 1, emailSuggestions.length - 1)
+                  );
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setEmailActive((i) => Math.max(i - 1, 0));
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  pickEmailSuggestion(emailSuggestions[emailActive]);
+                } else if (e.key === "Escape") {
+                  setEmailOpen(false);
+                }
+              }}
               className={[
                 inputBase,
                 touched.email && errors.email ? errBorder : okBorder,
               ].join(" ")}
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="name@example.com"
             />
+
+            {emailOpen && hasAt && emailSuggestions.length > 0 ? (
+              <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-black/10 bg-white shadow-lg top-full">
+                {emailSuggestions.map((d, idx) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onMouseDown={(ev) => {
+                      ev.preventDefault();
+                      pickEmailSuggestion(d);
+                    }}
+                    className={[
+                      "w-full px-3 py-2 text-left text-[13px]",
+                      idx === emailActive ? "bg-black/[0.05]" : "bg-white",
+                    ].join(" ")}
+                  >
+                    <span className="text-black/60">{local}@</span>
+                    <span className="text-black">{d}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             {touched.email && errors.email && (
               <span className="text-[11px] text-tenton-red">
                 {errors.email}

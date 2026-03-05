@@ -1,5 +1,6 @@
 "use client";
 
+import { adminFetch } from "@/lib/adminApi";
 import { ArrowUpDown, Calendar, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -12,11 +13,17 @@ type ReservationApi = {
   phone: string;
   email: string;
   note: string | null;
-  createdAt: string; // "...Z"
-  updatedAt: string; // "...Z"
+  createdAt: string;
+  updatedAt: string;
 };
 
-type SortKey = "date_time_asc" | "date_time_desc" | "party_desc" | "party_asc";
+type SortKey =
+  | "date_time_asc"
+  | "date_time_desc"
+  | "party_desc"
+  | "party_asc"
+  | "name_asc"
+  | "name_desc";
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -46,12 +53,17 @@ function cmp(a: string | number, b: string | number) {
   return 0;
 }
 
-// reservedAt: "2026-03-05T16:30:00"
-// -> dateIso "2026-03-05", time "16:30"
+// reservedAt: "2026-03-05T16:30:00" -> dateIso "2026-03-05", time "16:30"
 function splitReservedAt(reservedAt: string) {
   const [datePart, timePartRaw] = reservedAt.split("T");
-  const timePart = (timePartRaw ?? "").slice(0, 5); // "HH:mm"
+  const timePart = (timePartRaw ?? "").slice(0, 5);
   return { dateIso: datePart, time: timePart };
+}
+
+function getErrorMessage(e: unknown) {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
+  return "Failed to load reservations.";
 }
 
 export default function ReservationsDashboardPage() {
@@ -91,34 +103,30 @@ export default function ReservationsDashboardPage() {
     }
   }, [rangePreset, today]);
 
-  // fetch
+  // ✅ admin API (cookie 포함)
   useEffect(() => {
     let cancelled = false;
 
-    async function run() {
+    (async () => {
       try {
         setLoading(true);
         setLoadError(null);
 
-        const res = await fetch("/api/reservations", { cache: "no-store" });
+        const res = await adminFetch("/api/admin/reservations");
         if (!res.ok) {
           const text = await res.text();
           throw new Error(text || `HTTP ${res.status}`);
         }
 
         const data = (await res.json()) as ReservationApi[];
-
         if (!cancelled) setRows(Array.isArray(data) ? data : []);
       } catch (e: unknown) {
-        const msg =
-          e instanceof Error ? e.message : "Failed to load reservations.";
-        if (!cancelled) setLoadError(msg);
+        if (!cancelled) setLoadError(getErrorMessage(e));
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
+    })();
 
-    run();
     return () => {
       cancelled = true;
     };
@@ -150,7 +158,7 @@ export default function ReservationsDashboardPage() {
       });
     }
 
-    const sorted = [...list].sort((a, b) => {
+    return [...list].sort((a, b) => {
       const A = splitReservedAt(a.reservedAt);
       const B = splitReservedAt(b.reservedAt);
 
@@ -169,12 +177,11 @@ export default function ReservationsDashboardPage() {
         return (
           cmp(nameOf(a).toLowerCase(), nameOf(b).toLowerCase()) || cmp(aDT, bDT)
         );
+
       return (
         cmp(nameOf(b).toLowerCase(), nameOf(a).toLowerCase()) || cmp(aDT, bDT)
       );
     });
-
-    return sorted;
   }, [rows, startDate, endDate, query, sort]);
 
   const groupedByDate = useMemo(() => {
@@ -328,7 +335,7 @@ export default function ReservationsDashboardPage() {
 
           <div className="border-t border-black/10" />
 
-          {/* table */}
+          {/* ✅ TABLE (desktop) */}
           <div className="hidden md:block">
             {loading ? (
               <div className="p-8 text-center text-sm text-black/60">
@@ -362,7 +369,7 @@ export default function ReservationsDashboardPage() {
                             <th className="px-5 py-3">Name</th>
                             <th className="px-5 py-3 w-[90px]">Party</th>
                             <th className="px-5 py-3 w-[160px]">Phone</th>
-                            <th className="px-5 py-3 w-[220px]">Email</th>
+                            <th className="px-5 py-3 w-[240px]">Email</th>
                             <th className="px-5 py-3">Note</th>
                           </tr>
                         </thead>
@@ -403,7 +410,7 @@ export default function ReservationsDashboardPage() {
             )}
           </div>
 
-          {/* mobile cards */}
+          {/* ✅ MOBILE cards */}
           <div className="md:hidden p-4 space-y-3">
             {loading ? (
               <div className="p-8 text-center text-sm text-black/60">

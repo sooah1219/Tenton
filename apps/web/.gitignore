@@ -43,3 +43,6 @@ next-env.d.ts
 
 apps/api/bin
 apps/api/obj
+
+appsettings*.json
+appsettings.Development.json
