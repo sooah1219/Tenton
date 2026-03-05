@@ -4,6 +4,7 @@ import CallIcon from "@/components/icons/Call.svg";
 import CartIcon from "@/components/icons/Cart.svg";
 import Image from "next/image";
 import Link from "next/link";
+import TopBar from "./topBar";
 
 export default function NavBar() {
   return (
@@ -35,10 +36,9 @@ export default function NavBar() {
             Tenton Ramen <span className="text-tenton-red">N</span> Tonkatsu
           </span>
         </Link>
-        {/* todo change phone num */}
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
           <Link
-            href="tel:+1-000-000-0000"
+            href="tel:+1-604-912-0288"
             className="
               inline-flex items-center justify-center rounded-full
               bg-tenton-red border-2 border-tenton-red text-tenton-bg
@@ -71,6 +71,7 @@ export default function NavBar() {
           </Link>
         </div>
       </div>
+      <TopBar />
     </header>
   );
 }

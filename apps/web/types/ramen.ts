@@ -1,44 +1,71 @@
-import { MenuItem } from "./menu";
+import type { Activatable, Currency, ID, Sortable, Timestamped } from "./menu";
 
-export type ProteinOption = MenuItem & {
-  kind: "protein";
-};
+export type OptionGroupKind = "protein" | "noodle" | "topping";
+export type OptionSelection = "single" | "multi";
 
-export type NoodleOption = MenuItem & {
-  kind: "noodle";
-};
+export type OptionGroup = Timestamped &
+  Sortable &
+  Activatable & {
+    id: ID;
 
-export type ToppingOption = MenuItem & {
-  kind: "topping";
-  maxQty?: number;
-  defaultQty?: number;
-};
+    kind: OptionGroupKind; // protein/noodle/topping
+    title: string;
+    step: 1 | 2 | 3;
 
-export type ChoiceGroup<T extends MenuItem> = {
-  id: string;
-  title: string;
-  step: 1 | 2 | 3;
-  required?: boolean;
-  selection: "single" | "multi";
-  options: T[];
-  minSelected?: number;
-  maxSelected?: number;
+    selection: OptionSelection; // single/multi
+    required: boolean;
+
+    minSelected: number; // 0 or 1
+    maxSelected: number; // 1 or N
+  };
+
+export type Option = Timestamped &
+  Sortable &
+  Activatable & {
+    id: ID;
+    groupId: ID;
+
+    name: string;
+    description?: string | null;
+
+    priceDeltaCents: number;
+    currency: Currency;
+    imageUrl?: string | null;
+
+    maxQty?: number | null;
+    defaultQty?: number | null;
+  };
+
+export type MenuItemOptionGroup = Timestamped &
+  Sortable & {
+    id: ID;
+    menuItemId: ID;
+    groupId: ID;
+
+    requiredOverride?: boolean | null;
+    minSelectedOverride?: number | null;
+    maxSelectedOverride?: number | null;
+  };
+
+export type MenuItemAllowedOption = Timestamped & {
+  id: ID;
+  menuItemId: ID;
+  optionId: ID;
 };
 
 export type RamenSelection = {
-  proteinId: string;
-  noodleId: string;
-  toppings: { id: string; qty: number; image: string }[];
+  proteinOptionId: ID;
+  noodleOptionId: ID;
+  toppings: { optionId: ID; qty: number }[];
   note?: string;
 };
 
-export type RamenMenuItem = MenuItem & {
-  kind: "ramen";
-  description?: string;
+export type RamenConfigDTO = {
+  menuItemId: ID;
   groups: {
-    protein: ChoiceGroup<ProteinOption>;
-    noodle: ChoiceGroup<NoodleOption>;
-    topping: ChoiceGroup<ToppingOption>;
+    protein: { group: OptionGroup; options: Option[] };
+    noodle: { group: OptionGroup; options: Option[] };
+    topping: { group: OptionGroup; options: Option[] };
   };
   defaults?: Partial<RamenSelection>;
 };

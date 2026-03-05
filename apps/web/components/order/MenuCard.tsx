@@ -1,9 +1,9 @@
 "use client";
 
+import type { MenuItem } from "@/types/menu";
 import { Plus } from "lucide-react";
 import Image from "next/image";
-import type { MenuItem } from "./OnlineOrderPage";
-import { money } from "./OnlineOrderPage";
+import { moneyFromCents } from "./helpers";
 
 export default function MenuCard({
   item,
@@ -21,9 +21,9 @@ export default function MenuCard({
       "
     >
       <div className="aspect-[4/3] flex items-center justify-center">
-        {item.image ? (
+        {item.imageUrl ? (
           <Image
-            src={item.image}
+            src={item.imageUrl}
             alt={item.name}
             width={400}
             height={300}
@@ -36,7 +36,9 @@ export default function MenuCard({
 
       <div className="p-4 text-center">
         <div className="font-semibold text-md">{item.name}</div>
-        <div className="text-tenton-red text-md mt-1">{money(item.price)}</div>
+        <div className="text-tenton-red text-md mt-1">
+          {moneyFromCents(item.priceCents)}
+        </div>
       </div>
 
       <div className="px-4 mt-auto flex justify-end">

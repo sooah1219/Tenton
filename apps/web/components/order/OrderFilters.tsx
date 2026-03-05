@@ -103,9 +103,7 @@ export default function OrderFilters({
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setHydrated(true);
-    }, 0);
+    const timer = setTimeout(() => setHydrated(true), 0);
     return () => clearTimeout(timer);
   }, []);
 
@@ -115,7 +113,24 @@ export default function OrderFilters({
     return () => clearInterval(id);
   }, [hydrated]);
 
-  const dayValues = useMemo(() => buildDayValues(), []);
+  const todaySlots = useMemo(() => {
+    if (!hydrated) return [];
+    return buildTimeSlotsClientOnly(0);
+  }, [hydrated, tick]);
+
+  const todayClosed = hydrated && todaySlots.length === 0;
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (todayClosed && pickupDay === "Today") {
+      onPickupDayChange("Tomorrow");
+    }
+  }, [hydrated, todayClosed, pickupDay, onPickupDayChange]);
+
+  const dayValues = useMemo(() => {
+    const all = buildDayValues();
+    return todayClosed ? all.filter((v) => v !== "Today") : all;
+  }, [todayClosed]);
 
   const dayOptions = useMemo(() => {
     if (!hydrated) {
@@ -157,9 +172,10 @@ export default function OrderFilters({
 
         <div className="flex items-center gap-2 justify-center md:justify-self-end">
           <div className="inline-flex items-center gap-1">
-            <Clock className="text-tenton-brown" size={22} />
-            <span className="text-md font-bold text-tenton-brown">
-              Pickup Time
+            <Clock className="text-tenton-brown" size={20} />
+            <span className="text-sm md:text-md font-bold text-tenton-brown">
+              <span className="md:hidden">Pickup</span>
+              <span className="hidden md:inline">Pickup Time</span>
             </span>
           </div>
 

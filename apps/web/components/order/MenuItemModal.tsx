@@ -1,77 +1,117 @@
 "use client";
 
+import Button from "@/components/ui/CtaButton";
+import { Check } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import type { MenuItem } from "./OnlineOrderPage";
-import { money } from "./OnlineOrderPage";
 
-export type ProteinId = "chashu" | "karaage";
-export type NoodleId = "thin" | "regular";
+import type { ID, MenuItem } from "@/types/menu";
+import type { RamenSelection } from "@/types/ramen";
+import { moneyFromCents } from "./helpers";
 
-export type Topping = {
-  id: string;
+export type ItemConfig = RamenSelection;
+
+type UiOption = {
+  id: ID;
   name: string;
-  price: number;
-  img: string;
+  desc?: string;
+  priceDeltaCents: number;
+  imageUrl: string;
 };
 
-export type ItemConfig = {
-  protein: ProteinId | null;
-  noodle: NoodleId | null;
-  toppings: string[]; // topping ids
-  note?: string;
-};
-
-export const PROTEINS: {
-  id: ProteinId;
-  name: string;
-  desc: string;
-  img: string;
-}[] = [
+export const PROTEINS: UiOption[] = [
   {
-    id: "chashu",
+    id: "protein_chashu",
     name: "Chashu",
     desc: "(Pork Slice)",
-    img: "/toppings/chashu.png",
+    priceDeltaCents: 0,
+    imageUrl: "/toppings/chashu.png",
   },
   {
-    id: "karaage",
+    id: "protein_karaage",
     name: "Karaage",
     desc: "(Deep Fried Chicken)",
-    img: "/toppings/karaage.png",
+    priceDeltaCents: 0,
+    imageUrl: "/toppings/karaage.png",
   },
 ];
 
-export const NOODLES: { id: NoodleId; name: string; img: string }[] = [
-  { id: "thin", name: "Thin Noodle", img: "/toppings/thinnoodle.png" },
+export const NOODLES: UiOption[] = [
   {
-    id: "regular",
+    id: "noodle_thin",
+    name: "Thin Noodle",
+    priceDeltaCents: 0,
+    imageUrl: "/toppings/thinnoodle.png",
+  },
+  {
+    id: "noodle_regular",
     name: "Regular Noodle",
-    img: "/toppings/noodle.png",
+    priceDeltaCents: 0,
+    imageUrl: "/toppings/noodle.png",
   },
 ];
 
-export const TOPPINGS: Topping[] = [
-  { id: "chashu", name: "Chashu", price: 4, img: "/toppings/chashu.png" },
-  { id: "karaage", name: "Karaage", price: 4, img: "/toppings/karaage.png" },
-  { id: "egg", name: "Egg", price: 3, img: "/toppings/egg.png" },
+export const TOPPINGS: UiOption[] = [
   {
-    id: "beansprout",
+    id: "top_chashu",
+    name: "Chashu",
+    priceDeltaCents: 400,
+    imageUrl: "/toppings/chashu.png",
+  },
+  {
+    id: "top_karaage",
+    name: "Karaage",
+    priceDeltaCents: 400,
+    imageUrl: "/toppings/karaage.png",
+  },
+  {
+    id: "top_egg",
+    name: "Egg",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/egg.png",
+  },
+  {
+    id: "top_beansprout",
     name: "Beansprout",
-    price: 3,
-    img: "/toppings/beansprout.png",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/beansprout.png",
   },
   {
-    id: "greenonion",
+    id: "top_greenonion",
     name: "Greenonion",
-    price: 3,
-    img: "/toppings/greenonion.png",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/greenonion.png",
   },
-  { id: "broccoli", name: "Broccoli", price: 3, img: "/toppings/broccoli.png" },
-  { id: "corn", name: "Corn", price: 3, img: "/toppings/corn.png" },
-  { id: "fishcake", name: "Fishcake", price: 3, img: "/toppings/fishcake.png" },
-  { id: "mushroom", name: "Mushroom", price: 3, img: "/toppings/mushroom.png" },
-  { id: "seaweed", name: "Seaweed", price: 3, img: "/toppings/seaweed.png" },
+  {
+    id: "top_broccoli",
+    name: "Broccoli",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/broccoli.png",
+  },
+  {
+    id: "top_corn",
+    name: "Corn",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/corn.png",
+  },
+  {
+    id: "top_fishcake",
+    name: "Fishcake",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/fishcake.png",
+  },
+  {
+    id: "top_mushroom",
+    name: "Mushroom",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/mushroom.png",
+  },
+  {
+    id: "top_seaweed",
+    name: "Seaweed",
+    priceDeltaCents: 300,
+    imageUrl: "/toppings/seaweed.png",
+  },
 ];
 
 export default function MenuItemModal({
@@ -85,7 +125,6 @@ export default function MenuItemModal({
   onClose: () => void;
   onAdd: (item: MenuItem, qty: number, config: ItemConfig) => void;
 }) {
-  // ESC close only (no setState in effect)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -97,7 +136,6 @@ export default function MenuItemModal({
 
   if (!open || !item) return null;
 
-  // key remount resets all inner state naturally (no reset effect)
   return (
     <MenuItemModalInner
       key={item.id}
@@ -117,26 +155,42 @@ function MenuItemModalInner({
   onClose: () => void;
   onAdd: (item: MenuItem, qty: number, config: ItemConfig) => void;
 }) {
+  const isRamen = item.kind === "ramen" || item.categoryId === "ramen";
+  const panelH = isRamen ? "h-[88vh]" : "h-[70vh]";
+
   const [qty, setQty] = useState(1);
-  const [protein, setProtein] = useState<ProteinId | null>(null);
-  const [noodle, setNoodle] = useState<NoodleId | null>(null);
-  const [toppings, setToppings] = useState<string[]>([]);
+
+  const [proteinOptionId, setProteinOptionId] = useState<ID | null>(null);
+  const [noodleOptionId, setNoodleOptionId] = useState<ID | null>(null);
+
+  const [toppingIds, setToppingIds] = useState<ID[]>([]);
   const [note, setNote] = useState("");
 
-  const toppingTotal = useMemo(() => {
-    const map = new Map(TOPPINGS.map((t) => [t.id, t.price]));
-    return toppings.reduce((sum, id) => sum + (map.get(id) ?? 0), 0);
-  }, [toppings]);
+  const toppingExtraCents = useMemo(() => {
+    const map = new Map(TOPPINGS.map((t) => [t.id, t.priceDeltaCents]));
+    return toppingIds.reduce((sum, id) => sum + (map.get(id) ?? 0), 0);
+  }, [toppingIds]);
 
-  const unitPrice = item.price + toppingTotal;
-  const totalPrice = unitPrice * qty;
+  const unitPriceCents = item.priceCents + toppingExtraCents;
+  const totalPriceCents = unitPriceCents * qty;
 
-  const canAdd = protein !== null && noodle !== null;
+  const canAdd = isRamen
+    ? proteinOptionId !== null && noodleOptionId !== null
+    : true;
 
-  function toggleTopping(id: string) {
-    setToppings((prev) =>
+  function toggleTopping(id: ID) {
+    setToppingIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
+  }
+
+  function buildConfig(): ItemConfig {
+    return {
+      proteinOptionId: (proteinOptionId ?? "") as ID,
+      noodleOptionId: (noodleOptionId ?? "") as ID,
+      toppings: toppingIds.map((id) => ({ optionId: id, qty: 1 })),
+      note: note || undefined,
+    };
   }
 
   return (
@@ -149,8 +203,10 @@ function MenuItemModalInner({
       />
 
       {/* Panel */}
-      <div className="absolute inset-0 flex items-center justify-center p-3 sm:p-6">
-        <div className="relative w-full max-w-[420px] h-[88vh] overflow-hidden rounded-2xl bg-white shadow-2xl ">
+      <div className="absolute inset-0 flex items-center justify-center p-2">
+        <div
+          className={`relative w-full max-w-[420px] ${panelH} overflow-hidden rounded-2xl bg-white shadow-2xl`}
+        >
           {/* Close */}
           <button
             onClick={onClose}
@@ -163,193 +219,190 @@ function MenuItemModalInner({
           {/* Scroll */}
           <div className="h-full overflow-y-auto pb-28">
             {/* Image */}
-            <div className="pt-7 pb-2 flex justify-center">
-              <div className="relative h-80 w-80 bg-white overflow-hidden">
-                {item.image ? (
+            <div className="flex justify-center mt-5 mb-3">
+              <div className="relative w-60 h-44 overflow-hidden">
+                {item.imageUrl ? (
                   <Image
-                    src={item.image}
+                    src={item.imageUrl}
                     alt={item.name}
                     fill
-                    className="object-contain p-3"
+                    className="object-cover"
                   />
                 ) : null}
               </div>
             </div>
 
             <div className="px-6 text-center">
-              <h2 className="text-lg font-semibold text-tenton-brown">
+              <h2 className="text-lg font-semibold text-tenton-red">
                 {item.name}
               </h2>
-              <p className="mt-1 text-xs text-black/50">
-                Our classic pork broth. Simple and satisfying
-              </p>
+              {item.description ? (
+                <p className="mt-1 text-[14px] text-black">
+                  {item.description}
+                </p>
+              ) : null}
             </div>
 
-            {/* STEP 01 */}
-            <div className="mt-5 px-6">
-              <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-black/60">
-                <span>STEP 01. Choose Your Protein</span>
-                <span className="text-[10px] font-semibold text-tenton-red">
-                  Required
-                </span>
+            <div className="flex flex-col gap-8 mt-8">
+              {isRamen ? (
+                <>
+                  {/* STEP 01 */}
+                  <div className="px-6">
+                    <div className="flex items-center justify-center gap-2 text-[14px] font-semibold text-black/60">
+                      <span>STEP 01. Choose Your Protein</span>
+                      <span className="text-[9px] text-white bg-tenton-brown px-2 py-0.5 rounded-2xl">
+                        Required
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2">
+                      {PROTEINS.map((p) => {
+                        const active = proteinOptionId === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => setProteinOptionId(p.id)}
+                            className={["text-center transition"].join(" ")}
+                          >
+                            <div className="mx-auto relative h-30 w-30 hover:scale-120">
+                              <Image
+                                src={p.imageUrl}
+                                alt={p.name}
+                                fill
+                                className="object-contain cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-center gap-2">
+                              <span
+                                className={[
+                                  "h-4 w-4 rounded-full border flex items-center justify-center text-[10px] cursor-pointer",
+                                  active
+                                    ? "border-tenton-brown bg-tenton-brown text-white"
+                                    : "border-black/20 bg-white text-transparent",
+                                ].join(" ")}
+                              >
+                                <Check className="h-3 w-3 stroke-[3]" />
+                              </span>
+                              <div className="text-xs font-semibold cursor-pointer">
+                                {p.name}
+                              </div>
+                            </div>
+
+                            {p.desc ? (
+                              <div className="text-[10px] text-black/45 mt-0.5">
+                                {p.desc}
+                              </div>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* STEP 02 */}
+                  <div className="px-6">
+                    <div className="flex items-center justify-center gap-2 text-[14px] font-semibold text-black/60">
+                      <span>STEP 02. Choose Your Noodle</span>
+                      <span className="text-[9px] text-white bg-tenton-brown px-2 py-0.5 rounded-2xl">
+                        Required
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2">
+                      {NOODLES.map((n) => {
+                        const active = noodleOptionId === n.id;
+                        return (
+                          <button
+                            key={n.id}
+                            onClick={() => setNoodleOptionId(n.id)}
+                            className={["text-center transition"].join(" ")}
+                          >
+                            <div className="mx-auto relative h-30 w-30 hover:scale-120">
+                              <Image
+                                src={n.imageUrl}
+                                alt={n.name}
+                                fill
+                                className="object-contain cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-center gap-2">
+                              <span
+                                className={[
+                                  "h-4 w-4 rounded-full border flex items-center justify-center text-[10px] cursor-pointer",
+                                  active
+                                    ? "border-tenton-brown bg-tenton-brown text-white"
+                                    : "border-black/20 bg-white text-transparent",
+                                ].join(" ")}
+                              >
+                                <Check className="h-3 w-3 stroke-[3]" />
+                              </span>
+                              <div className="text-xs font-semibold cursor-pointer">
+                                {n.name}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* STEP 03 */}
+                  <div className="px-6 pb-6">
+                    <div className="text-center text-[14px] font-semibold text-black/60">
+                      STEP 03. Extra Ramen Topping
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      {TOPPINGS.map((t) => {
+                        const active = toppingIds.includes(t.id);
+                        return (
+                          <button
+                            key={t.id}
+                            onClick={() => toggleTopping(t.id)}
+                            className="text-center"
+                          >
+                            <div className="mx-auto relative h-20 w-20 overflow-hidden transition hover:scale-120 cursor-pointer">
+                              <Image
+                                src={t.imageUrl}
+                                alt={t.name}
+                                fill
+                                className="object-contain"
+                              />
+                              {active ? (
+                                <div className="absolute left-3 top-3 h-5 w-5 rounded-full bg-tenton-brown text-white text-[11px] flex items-center justify-center">
+                                  <Check className="h-3 w-3 stroke-[3]" />
+                                </div>
+                              ) : null}
+                            </div>
+
+                            <div className="text-[11px] font-semibold text-black/70">
+                              {t.name}
+                            </div>
+                            <div className="text-[11px] text-black/40">
+                              {moneyFromCents(t.priceDeltaCents)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              ) : null}
+
+              <div className="px-6 pb-6">
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Add note (optional)"
+                  className="w-full rounded-xl border border-black/10 bg-[#fbfaf8] px-3 py-2 text-sm outline-none focus:border-tenton-brown"
+                  rows={3}
+                />
               </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-4">
-                {PROTEINS.map((p) => {
-                  const active = protein === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => setProtein(p.id)}
-                      className={[
-                        "p-3 text-center transition",
-                        // add check icon
-                        // active
-                        //   ? "border-tenton-brown shadow-sm"
-                        //   : "border-black/10 hover:border-black/20",
-                      ].join(" ")}
-                    >
-                      <div className="mx-auto relative h-14 w-14">
-                        <Image
-                          src={p.img}
-                          alt={p.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-
-                      <div className="mt-2 flex items-center justify-center gap-2">
-                        <span
-                          className={[
-                            "h-4 w-4 rounded-full border flex items-center justify-center text-[10px]",
-                            active
-                              ? "border-tenton-brown bg-tenton-brown text-white"
-                              : "border-black/20 bg-white text-transparent",
-                          ].join(" ")}
-                        >
-                          ✓
-                        </span>
-                        <div className="text-xs font-semibold">{p.name}</div>
-                      </div>
-
-                      <div className="text-[10px] text-black/45 mt-0.5">
-                        {p.desc}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* STEP 02 */}
-            <div className="mt-6 px-6">
-              <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-black/60">
-                <span>STEP 02. Choose Your Noodle</span>
-                <span className="text-[10px] font-semibold text-tenton-red">
-                  Required
-                </span>
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-4">
-                {NOODLES.map((n) => {
-                  const active = noodle === n.id;
-                  return (
-                    <button
-                      key={n.id}
-                      onClick={() => setNoodle(n.id)}
-                      className={[
-                        "p-3 text-center transition",
-                        // active
-                        //   ? "border-tenton-brown shadow-sm"
-                        //   : "border-black/10 hover:border-black/20",
-                      ].join(" ")}
-                    >
-                      <div className="mx-auto relative h-14 w-14">
-                        <Image
-                          src={n.img}
-                          alt={n.name}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-
-                      <div className="mt-2 flex items-center justify-center gap-2">
-                        <span
-                          className={[
-                            "h-4 w-4 rounded-full border flex items-center justify-center text-[10px]",
-                            active
-                              ? "border-tenton-brown bg-tenton-brown text-white"
-                              : "border-black/20 bg-white text-transparent",
-                          ].join(" ")}
-                        >
-                          ✓
-                        </span>
-                        <div className="text-xs font-semibold">{n.name}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* STEP 03 */}
-            <div className="mt-7 px-6 pb-6">
-              <div className="text-center text-[11px] font-semibold text-black/60">
-                STEP 03. Extra Ramen Topping
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                {TOPPINGS.map((t) => {
-                  const active = toppings.includes(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => toggleTopping(t.id)}
-                      className="text-center"
-                    >
-                      <div
-                        className={[
-                          "mx-auto relative h-16 w-16 rounded-full bg-white border shadow-sm overflow-hidden transition",
-                          active
-                            ? "border-tenton-brown"
-                            : "border-black/10 hover:border-black/20",
-                        ].join(" ")}
-                      >
-                        <Image
-                          src={t.img}
-                          alt={t.name}
-                          fill
-                          className="object-contain p-2"
-                        />
-                        {active ? (
-                          <div className="absolute left-1 top-1 h-5 w-5 rounded-full bg-tenton-brown text-white text-[11px] flex items-center justify-center">
-                            ✓
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-2 text-[11px] font-semibold text-black/70">
-                        {t.name}
-                      </div>
-                      <div className="text-[11px] text-black/40">
-                        {money(t.price)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Add note (optional)"
-                className="mt-5 w-full rounded-xl border border-black/10 bg-[#fbfaf8] px-3 py-2 text-sm outline-none focus:border-tenton-brown"
-                rows={3}
-              />
             </div>
           </div>
 
-          {/* Bottom bar */}
           <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-black/10">
             <div className="px-5 py-4 flex items-center gap-3">
               <div className="flex items-center rounded-full bg-[#f4f1ea] border border-black/10 overflow-hidden">
@@ -372,26 +425,18 @@ function MenuItemModalInner({
                 </button>
               </div>
 
-              <button
+              <Button
                 disabled={!canAdd}
-                onClick={() =>
-                  onAdd(item, qty, {
-                    protein,
-                    noodle,
-                    toppings,
-                    note: note || undefined,
-                  })
-                }
-                className={[
-                  "flex-1 h-10 rounded-full font-semibold text-sm flex items-center justify-center gap-2 transition",
-                  canAdd
-                    ? "bg-tenton-brown text-white hover:bg-tenton-red"
-                    : "bg-black/10 text-black/40 cursor-not-allowed",
-                ].join(" ")}
+                onClick={() => onAdd(item, qty, buildConfig())}
+                size="sm"
+                variant={canAdd ? "primary" : "ghost"}
+                className="flex-1 h-10"
               >
                 <span className="opacity-95">Add to order</span>
-                <span className="opacity-90">{money(totalPrice)}</span>
-              </button>
+                <span className="opacity-90">
+                  {moneyFromCents(totalPriceCents)}
+                </span>
+              </Button>
             </div>
 
             {!canAdd ? (

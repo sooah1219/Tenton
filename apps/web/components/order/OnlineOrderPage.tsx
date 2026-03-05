@@ -1,217 +1,49 @@
 "use client";
 
-import { Plus } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
-import { CategoryIcons } from "./categoryIcons";
-import MenuItemModal, {
-  type ItemConfig,
-  NOODLES,
-  PROTEINS,
-  TOPPINGS,
-} from "./MenuItemModal";
-import OrderFilters, { type PickupDayValue } from "./OrderFilters";
-import TopBar from "./topBar";
+import CartIcon from "@/components/icons/Cart.svg";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-export type Category = { id: string; name: string; icon: string };
-export type MenuItem = {
-  id: string;
-  name: string;
-  price: number;
-  image?: string; //
-  categoryId: string;
-};
+import CartSummary from "./CartSummary";
+import { CategoryIcons } from "./CategoryIcons";
+import MenuGrid from "./MenuGrid";
+import MenuItemModal, { type ItemConfig } from "./MenuItemModal";
+import OrderFilters, { type PickupDayValue } from "./OrderFilters";
+
+import { configKey, lineExtraPriceCents } from "./helpers";
+
+import { getCategories, getMenuItems } from "@/lib/api/menu";
+import type { Category, MenuItem } from "@/types/menu";
 
 export type CartLine = {
-  key: string; //
+  key: string;
   item: MenuItem;
   qty: number;
   config: ItemConfig;
 };
 
-export function money(n: number) {
-  return n.toLocaleString("en-CA", { style: "currency", currency: "CAD" });
-}
-
+const PICKUP_KEY = "tenton_pickup_v1";
 const CART_KEY = "tenton_cart_v1";
-
-const CATEGORIES: Category[] = [
-  { id: "ramen", name: "Ramen", icon: "/icons/ramen.svg" },
-  { id: "katsu", name: "Katsu", icon: "/icons/tonkatsu.svg" },
-  { id: "udon", name: "Udon", icon: "/icons/udon.svg" },
-  { id: "don", name: "Rice Bowl", icon: "/icons/rice.svg" },
-  { id: "appetizer", name: "Appetizer", icon: "/icons/gyoza.svg" },
-  { id: "salad", name: "Salad", icon: "/icons/salad.svg" },
-  { id: "dessert", name: "Dessert", icon: "/icons/dessert.svg" },
-];
-
-const ITEMS: MenuItem[] = [
-  // Ramen
-  {
-    id: "r1",
-    name: "Original Ramen",
-    price: 17.5,
-    categoryId: "ramen",
-    image: "/ramen/original.png",
-  },
-  {
-    id: "r2",
-    name: "Miso Ramen",
-    price: 18.5,
-    categoryId: "ramen",
-    image: "/ramen/miso.png",
-  },
-  {
-    id: "r3",
-    name: "Spicy Miso Ramen",
-    price: 19.5,
-    categoryId: "ramen",
-    image: "/ramen/spicymiso.png",
-  },
-  {
-    id: "r4",
-    name: "Black Ramen",
-    price: 19.5,
-    categoryId: "ramen",
-    image: "/ramen/black.png",
-  },
-  {
-    id: "r5",
-    name: "Vegetable Ramen",
-    price: 20.0,
-    categoryId: "ramen",
-    image: "/ramen/vegetable.png",
-  },
-
-  // Katsu combo
-  {
-    id: "c1",
-    name: "Pork Combo",
-    price: 7.0,
-    categoryId: "combo",
-    image: "/porkCombo.png",
-  },
-  {
-    id: "c2",
-    name: "Cheese Combo",
-    price: 7.0,
-    categoryId: "combo",
-    image: "/cheeseCombo.png",
-  },
-  {
-    id: "c3",
-    name: "Chicken Combo",
-    price: 7.0,
-    categoryId: "combo",
-    image: "/chickenCombo.png",
-  },
-  // Katsu
-  {
-    id: "t1",
-    name: "Tonkatsu",
-    price: 24.5,
-    categoryId: "katsu",
-    image: "/katsu/trio.png",
-  },
-  {
-    id: "t2",
-    name: "Cheese Katsu",
-    price: 24.0,
-    categoryId: "katsu",
-    image: "/katsu/cheesekatsu.png",
-  },
-  {
-    id: "t3",
-    name: "Katsu Trio Set",
-    price: 24.0,
-    categoryId: "katsu",
-    image: "/katsu/trio.png",
-  },
-  {
-    id: "t4",
-    name: "Curry Katsu",
-    price: 24.0,
-    categoryId: "katsu",
-    image: "/katsu/currykatsu.png",
-  },
-  {
-    id: "t5",
-    name: "Chicken Katsu",
-    price: 24.5,
-    categoryId: "katsu",
-    image: "/katsu/trio.png",
-  },
-  {
-    id: "t6",
-    name: "Ebi Katsu",
-    price: 24.5,
-    categoryId: "katsu",
-    image: "/katsu/ebikatsu.png",
-  },
-  {
-    id: "t7",
-    name: "Fish Katsu",
-    price: 24.5,
-    categoryId: "katsu",
-    image: "/katsu/fishkatsu.png",
-  },
-  {
-    id: "t8",
-    name: "Tofu Katsu",
-    price: 24.5,
-    categoryId: "katsu",
-    image: "/katsu/tofukatsu.png",
-  },
-  {
-    id: "t9",
-    name: "Hamburg Steak",
-    price: 29.5,
-    categoryId: "katsu",
-    image: "/katsu/hamburg.png",
-  },
-  {
-    id: "t10",
-    name: "Beef Short Ribs",
-    price: 29.5,
-    categoryId: "katsu",
-    image: "/katsu/beefshortrib.png",
-  },
-];
-function configKey(itemId: string, cfg: ItemConfig) {
-  return `${itemId}|${JSON.stringify(cfg)}`;
-}
-
-function optionNameById(id: string, list: { id: string; name: string }[]) {
-  return list.find((x) => x.id === id)?.name ?? "";
-}
-
-function toppingsSummary(ids: string[]) {
-  const nameMap = new Map(TOPPINGS.map((t) => [t.id, t.name]));
-  return ids.map((id) => nameMap.get(id) ?? "").filter(Boolean);
-}
-
-function lineExtraPrice(cfg: ItemConfig) {
-  const priceMap = new Map(TOPPINGS.map((t) => [t.id, t.price]));
-  return (cfg.toppings ?? []).reduce(
-    (sum, id) => sum + (priceMap.get(id) ?? 0),
-    0
-  );
-}
-
-function lineSummary(cfg: ItemConfig) {
-  const protein = cfg.protein ? optionNameById(cfg.protein, PROTEINS) : "";
-  const noodle = cfg.noodle ? optionNameById(cfg.noodle, NOODLES) : "";
-  const tops = toppingsSummary(cfg.toppings ?? []);
-  return [protein, noodle, ...tops].filter(Boolean).join(" · ");
-}
 
 export default function OnlineOrderPage() {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState<string>("ramen");
+
   const [pickupDay, setPickupDay] = useState<PickupDayValue>("Today");
   const [pickupTime, setPickupTime] = useState<string>("");
+
   const [cart, setCart] = useState<CartLine[]>([]);
   const [cartHydrated, setCartHydrated] = useState(false);
+
+  const [cartInView, setCartInView] = useState(false);
+  const cartRef = useRef<HTMLElement | null>(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [loadingMenu, setLoadingMenu] = useState(true);
+  const [menuError, setMenuError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -219,6 +51,21 @@ export default function OnlineOrderPage() {
       setCart(raw ? (JSON.parse(raw) as CartLine[]) : []);
     } catch {
       setCart([]);
+    }
+
+    try {
+      const pickRaw = localStorage.getItem(PICKUP_KEY);
+      if (pickRaw) {
+        const parsed = JSON.parse(pickRaw) as {
+          pickupDay?: PickupDayValue;
+          pickupTime?: string;
+        };
+
+        if (parsed.pickupDay) setPickupDay(parsed.pickupDay);
+        if (typeof parsed.pickupTime === "string")
+          setPickupTime(parsed.pickupTime);
+      }
+    } catch {
     } finally {
       setCartHydrated(true);
     }
@@ -231,27 +78,116 @@ export default function OnlineOrderPage() {
     } catch {}
   }, [cart, cartHydrated]);
 
-  // modal
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  useEffect(() => {
+    if (!cartHydrated) return;
+    if (!pickupTime) return;
+    try {
+      localStorage.setItem(
+        PICKUP_KEY,
+        JSON.stringify({ pickupDay, pickupTime })
+      );
+    } catch {}
+  }, [pickupDay, pickupTime, cartHydrated]);
+
+  useEffect(() => {
+    const el = cartRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      ([entry]) => setCartInView(entry.isIntersecting),
+      { threshold: 0.25 }
+    );
+
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function run() {
+      setLoadingMenu(true);
+      setMenuError(null);
+      try {
+        const [cats, its] = await Promise.all([
+          getCategories(),
+          getMenuItems(),
+        ]);
+        if (!alive) return;
+
+        const sortedCats = [...cats].sort((a, b) => a.sortOrder - b.sortOrder);
+        const sortedItems = [...its].sort((a, b) => a.sortOrder - b.sortOrder);
+
+        setCategories(sortedCats);
+        setItems(sortedItems);
+
+        if (
+          sortedCats.length > 0 &&
+          !sortedCats.find((c) => c.id === activeCat)
+        ) {
+          setActiveCat(sortedCats[0].id);
+        }
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Failed to load menu.";
+        setMenuError(message);
+      } finally {
+        if (!alive) return;
+        setLoadingMenu(false);
+      }
+    }
+
+    run();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ITEMS.filter((it) => {
+    return items.filter((it) => {
+      if (it.categoryId === "combo") return false;
       const okCat = it.categoryId === activeCat;
       const okQ = !q || it.name.toLowerCase().includes(q);
       return okCat && okQ;
     });
-  }, [activeCat, query]);
+  }, [items, activeCat, query]);
 
-  const subtotal = useMemo(() => {
+  const comboItems = useMemo(() => {
+    return items.filter((it) => it.categoryId === "combo");
+  }, [items]);
+
+  const subtotalCents = useMemo(() => {
     return cart.reduce((sum, l) => {
-      const unit = l.item.price + lineExtraPrice(l.config);
-      return sum + unit * l.qty;
+      const unitCents = l.item.priceCents + lineExtraPriceCents(l.config);
+      return sum + unitCents * l.qty;
     }, 0);
   }, [cart]);
 
+  const gstCents = useMemo(
+    () => Math.round(subtotalCents * 0.05),
+    [subtotalCents]
+  );
+  const totalCents = useMemo(
+    () => subtotalCents + gstCents,
+    [subtotalCents, gstCents]
+  );
   const totalItems = useMemo(() => cart.reduce((n, l) => n + l.qty, 0), [cart]);
+
+  function pickupDayLabel(day: PickupDayValue) {
+    if (day === "Today") return "Today";
+    if (day === "Tomorrow") return "Tomorrow";
+
+    const n = Number(day.replace("+", "").replace("d", ""));
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+
+    return d.toLocaleDateString("en-CA", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
 
   function openModal(item: MenuItem) {
     setSelectedItem(item);
@@ -297,182 +233,84 @@ export default function OnlineOrderPage() {
     });
   }
 
+  function scrollToCart() {
+    cartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="min-h-screen bg-tenton-bg">
-      <TopBar />
-
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-6xl p-4">
         <h1 className="font-averia-serif text-center text-3xl lg:text-5xl lg:pt-5 text-tenton-brown">
           Online Order
         </h1>
 
-        <section>
-          <CategoryIcons
-            activeCat={activeCat}
-            setActiveCat={setActiveCat}
-            CATEGORIES={CATEGORIES}
-          />
-
-          <div className="grid grid-cols-1 gap-3">
-            <OrderFilters
-              query={query}
-              onQueryChange={setQuery}
-              pickupDay={pickupDay}
-              onPickupDayChange={setPickupDay}
-              pickupTime={pickupTime}
-              onPickupTimeChange={setPickupTime}
-            />
+        {loadingMenu ? (
+          <div className="mt-6 text-center text-sm text-black/60">
+            Loading menu…
           </div>
-        </section>
-
-        <section className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-          <div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {filtered.map((it) => (
-                <article
-                  key={it.id}
-                  onClick={() => openModal(it)}
-                  className="
-                    rounded-2xl bg-white shadow-lg overflow-hidden py-4 flex flex-col cursor-pointer transition-all duration-300
-                    hover:-translate-y-1 hover:shadow-xl border border-transparent hover:border-tenton-brown
-                  "
-                >
-                  <div className="aspect-[4/3] flex items-center justify-center">
-                    {it.image ? (
-                      <Image
-                        src={it.image}
-                        alt={it.name}
-                        width={400}
-                        height={300}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-black/30 text-sm">image</span>
-                    )}
-                  </div>
-
-                  <div className="p-4 text-center">
-                    <div className="font-semibold text-md">{it.name}</div>
-                    <div className="text-tenton-red text-md mt-1">
-                      {money(it.price)}
-                    </div>
-                  </div>
-
-                  <div className="px-4 mt-auto flex justify-end">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openModal(it);
-                      }}
-                      className="h-8 w-8 rounded-full bg-tenton-brown text-white cursor-pointer hover:bg-tenton-red transition flex items-center justify-center"
-                      aria-label={`Configure ${it.name}`}
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+        ) : menuError ? (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {menuError}
           </div>
+        ) : (
+          <>
+            <section>
+              <CategoryIcons
+                activeCat={activeCat}
+                setActiveCat={setActiveCat}
+                CATEGORIES={categories}
+              />
 
-          <aside className="lg:sticky lg:top-28 h-fit">
-            <div className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-black/10">
-                <div className="text-sm text-black/50 font-medium">
-                  Pick up at
-                </div>
-                <div className="text-2xl font-semibold tracking-tight mt-1">
-                  {pickupTime || "—"}
-                </div>
+              <div className="grid grid-cols-1 gap-3">
+                <OrderFilters
+                  query={query}
+                  onQueryChange={setQuery}
+                  pickupDay={pickupDay}
+                  onPickupDayChange={setPickupDay}
+                  pickupTime={pickupTime}
+                  onPickupTimeChange={setPickupTime}
+                />
+              </div>
+            </section>
+
+            <section className="mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
+              <div>
+                <MenuGrid
+                  items={filtered}
+                  onOpen={openModal}
+                  showComboSection={activeCat === "ramen"}
+                  comboItems={comboItems}
+                />
               </div>
 
-              <div className="p-4">
-                {!cartHydrated ? (
-                  <div className="text-sm text-black/50 py-8 text-center">
-                    Loading…
-                  </div>
-                ) : cart.length === 0 ? (
-                  <div className="text-sm text-black/50 py-8 text-center">
-                    Your order is empty
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {cart.map((l) => {
-                      const summary = lineSummary(l.config);
-                      const unit = l.item.price + lineExtraPrice(l.config);
-
-                      return (
-                        <div
-                          key={l.key}
-                          className="flex items-center justify-between gap-3"
-                        >
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold truncate">
-                              {l.item.name}
-                            </div>
-
-                            {summary ? (
-                              <div className="text-[11px] text-black/45 truncate mt-0.5">
-                                {summary}
-                              </div>
-                            ) : null}
-
-                            <div className="text-xs text-black/50 mt-0.5">
-                              {money(unit)}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => decLine(l.key)}
-                              className="h-7 w-7 rounded-full border border-black/15 hover:border-black/30"
-                              aria-label="Decrease"
-                            >
-                              −
-                            </button>
-                            <div className="w-6 text-center text-sm font-semibold">
-                              {l.qty}
-                            </div>
-                            <button
-                              onClick={() => incLine(l.key)}
-                              className="h-7 w-7 rounded-full border border-black/15 hover:border-black/30"
-                              aria-label="Increase"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="mt-6 border-t border-black/10 pt-4 flex items-center justify-between">
-                  <div className="text-sm font-semibold text-black/60">
-                    TOTAL
-                  </div>
-                  <div className="text-sm font-semibold">{money(subtotal)}</div>
-                </div>
-
-                <button
-                  disabled={cart.length === 0}
-                  className={[
-                    "mt-4 w-full h-11 rounded-full font-semibold text-sm transition flex items-center justify-center gap-2",
-                    cart.length === 0
-                      ? "bg-black/10 text-black/40 cursor-not-allowed"
-                      : "bg-[#6d3a30] text-white hover:bg-[#9b3d2e]",
-                  ].join(" ")}
-                >
-                  <span className="text-xs opacity-90">{totalItems} items</span>
-                  <span className="opacity-70">•</span>
-                  <span className="text-xs opacity-90">{money(subtotal)}</span>
-                  <span className="opacity-70">→</span>
-                </button>
-              </div>
-            </div>
-          </aside>
-        </section>
+              <CartSummary
+                cartRef={cartRef}
+                cartHydrated={cartHydrated}
+                cart={cart}
+                pickupDay={pickupDay}
+                pickupTime={pickupTime}
+                pickupDayLabel={pickupDayLabel}
+                decLine={decLine}
+                incLine={incLine}
+              />
+            </section>
+          </>
+        )}
       </main>
+
+      {cartHydrated && cart.length > 0 && !cartInView && (
+        <div className="fixed bottom-4 md:bottom-8 inset-x-0 z-50 flex justify-center lg:hidden">
+          <button
+            onClick={scrollToCart}
+            className="w-[200px] h-12 rounded-full border border-tenton-brown bg-tenton-brown text-white shadow-lg flex items-center justify-center gap-2 cursor-pointer transition hover:bg-white hover:text-tenton-brown"
+          >
+            <CartIcon className="h-[18px] w-[18px]" />
+            <span className="font-semibold">View cart</span>
+            <span className="opacity-80">•</span>
+            <span className="text-sm">{totalItems}</span>
+          </button>
+        </div>
+      )}
 
       <MenuItemModal
         open={modalOpen}

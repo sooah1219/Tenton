@@ -1,6 +1,8 @@
+"use client";
+
+import type { Category } from "@/types/menu";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import type { Category } from "./OnlineOrderPage";
 
 export function CategoryIcons({
   activeCat,
@@ -22,17 +24,17 @@ export function CategoryIcons({
   }, [activeCat]);
 
   return (
-    <div className="relative mt-2 w-full">
+    <div className="relative w-full">
       <div className="mx-auto w-full max-w-[1000px]">
         <div
           className="
             w-full flex
-            overflow-x-auto md:overflow-x-hidden
+            overflow-x-auto min-[650px]:overflow-x-hidden
             px-2 pb-2
-            justify-start md:justify-between
+            justify-start min-[650px]:justify-between
           "
         >
-          {CATEGORIES.map((c) => {
+          {CATEGORIES.filter((c) => c.id !== "combo").map((c) => {
             const active = c.id === activeCat;
 
             return (
@@ -47,29 +49,32 @@ export function CategoryIcons({
                   flex-none
                   flex flex-col items-center justify-center
                   min-w-[84px]
-                  py-2
                   cursor-pointer
                 "
               >
                 {/* icon */}
                 <div className="relative h-20 w-20 lg:h-30 lg:w-30">
-                  <Image
-                    src={c.icon}
-                    alt={c.name}
-                    fill
-                    className={[
-                      "object-contain transition-opacity duration-200",
-                      active
-                        ? "opacity-100"
-                        : "opacity-40 group-hover:opacity-100",
-                    ].join(" ")}
-                  />
+                  {c.icon ? (
+                    <Image
+                      src={c.icon}
+                      alt={c.name}
+                      fill
+                      className={[
+                        "object-contain transition-opacity duration-200",
+                        active
+                          ? "opacity-100"
+                          : "opacity-40 group-hover:opacity-100",
+                      ].join(" ")}
+                    />
+                  ) : (
+                    <span className="text-black/30 text-sm">icon</span>
+                  )}
                 </div>
 
                 {/* label */}
                 <span
                   className={[
-                    "text-md transition-colors duration-200",
+                    "text-sm text-md transition-colors duration-200",
                     active
                       ? "text-tenton-brown opacity-100"
                       : "text-font-brown opacity-25 group-hover:text-tenton-brown group-hover:opacity-100",

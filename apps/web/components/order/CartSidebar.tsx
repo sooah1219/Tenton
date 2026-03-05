@@ -1,19 +1,20 @@
 "use client";
 
-import type { CartLine, MenuItem } from "./OnlineOrderPage";
-import { money } from "./OnlineOrderPage";
+import type { MenuItem } from "@/types/menu";
+import { moneyFromCents } from "./helpers";
+import type { CartLine } from "./OnlineOrderPage";
 
 export default function CartSidebar({
   pickupTime,
   cart,
-  subtotal,
+  subtotalCents,
   totalItems,
   onAdd,
   onRemove,
 }: {
   pickupTime: string;
   cart: CartLine[];
-  subtotal: number;
+  subtotalCents: number;
   totalItems: number;
   onAdd: (item: MenuItem) => void;
   onRemove: (itemId: string) => void;
@@ -37,7 +38,7 @@ export default function CartSidebar({
             <div className="space-y-3">
               {cart.map((l) => (
                 <div
-                  key={l.item.id}
+                  key={l.key}
                   className="flex items-center justify-between gap-3"
                 >
                   <div className="min-w-0">
@@ -45,7 +46,7 @@ export default function CartSidebar({
                       {l.item.name}
                     </div>
                     <div className="text-xs text-black/50">
-                      {money(l.item.price)}
+                      {moneyFromCents(l.item.priceCents)}
                     </div>
                   </div>
 
@@ -77,7 +78,9 @@ export default function CartSidebar({
 
           <div className="mt-6 border-t border-black/10 pt-4 flex items-center justify-between">
             <div className="text-sm font-semibold text-black/60">TOTAL</div>
-            <div className="text-sm font-semibold">{money(subtotal)}</div>
+            <div className="text-sm font-semibold">
+              {moneyFromCents(subtotalCents)}
+            </div>
           </div>
 
           <button
@@ -91,7 +94,9 @@ export default function CartSidebar({
           >
             <span className="text-xs opacity-90">{totalItems} items</span>
             <span className="opacity-70">•</span>
-            <span className="text-xs opacity-90">{money(subtotal)}</span>
+            <span className="text-xs opacity-90">
+              {moneyFromCents(subtotalCents)}
+            </span>
             <span className="opacity-70">→</span>
           </button>
         </div>

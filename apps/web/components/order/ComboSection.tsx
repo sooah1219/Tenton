@@ -1,8 +1,8 @@
 "use client";
 
+import type { MenuItem } from "@/types/menu";
 import Image from "next/image";
-import type { MenuItem } from "./OnlineOrderPage";
-import { money } from "./OnlineOrderPage";
+import { moneyFromCents } from "./helpers";
 
 export default function ComboSection({
   title,
@@ -24,9 +24,9 @@ export default function ComboSection({
             className="rounded-2xl bg-white border border-black/10 shadow-sm overflow-hidden"
           >
             <div className="aspect-[4/3] bg-[#f2efe9] flex items-center justify-center">
-              {it.image ? (
+              {it.imageUrl ? (
                 <Image
-                  src={it.image}
+                  src={it.imageUrl}
                   alt={it.name}
                   width={400}
                   height={300}
@@ -42,7 +42,7 @@ export default function ComboSection({
                 <div>
                   <div className="text-sm">{it.name}</div>
                   <div className="text-tenton-red text-sm mt-1">
-                    {money(it.price)}
+                    {moneyFromCents(it.priceCents)}
                   </div>
                 </div>
 
