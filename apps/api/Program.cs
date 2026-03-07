@@ -2,6 +2,7 @@ using Api.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,7 +16,6 @@ builder.Services.AddRouting(options =>
     options.LowercaseUrls = true;
 });
 
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("WebPolicy", policy =>
@@ -27,13 +27,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// EF Core
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"));
 });
 
-// Admin JWT Auth
 var secret = builder.Configuration["ADMIN_JWT_SECRET"] ?? "";
 if (secret.Length < 32)
     throw new Exception("ADMIN_JWT_SECRET must be 32+ chars");
@@ -44,7 +42,6 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
-        // JWT claim 이름을 그대로 사용
         o.MapInboundClaims = false;
 
         o.TokenValidationParameters = new TokenValidationParameters
@@ -55,12 +52,9 @@ builder.Services
             IssuerSigningKey = key,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
-
-            // 핵심: 실제 들어오는 role claim type
-            RoleClaimType = "role"
+            RoleClaimType = ClaimTypes.Role
         };
 
-        // HttpOnly cookie 에서 JWT 읽기
         o.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>

@@ -17,16 +17,9 @@ export function cmp(a: string | number, b: string | number) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
-export function money(cents: number, currency: string) {
+export function money(cents: number) {
   const v = (cents ?? 0) / 100;
-  try {
-    return new Intl.NumberFormat("en-CA", {
-      style: "currency",
-      currency,
-    }).format(v);
-  } catch {
-    return `${currency} ${v.toFixed(2)}`;
-  }
+  return `$${v.toFixed(2)}`;
 }
 
 export function fmtLocal(iso: string) {

@@ -76,8 +76,12 @@ public class AdminAuthController : ControllerBase
     [HttpGet("me")]
     public IActionResult Me()
     {
-        var role = User.FindFirstValue("role") ?? "";
-        return Ok(new { role });
+        var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
+
+        return Ok(new
+        {
+            role
+        });
     }
 
     [Authorize]

@@ -46,3 +46,6 @@ apps/api/obj
 
 .vscode
 .config
+
+appsettings*.json
+appsettings.Development.json
